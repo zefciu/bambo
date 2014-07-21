@@ -14,6 +14,11 @@ class Population(object):
         weight_recess,
         dominant_addition_per_generation,
     ):
+        if dominant_addition_per_generation > number:
+            raise ValueError (
+                'We cannot add more dominant specimens'
+                ' than we have specimens in population'
+            )
         self.number = number
         self.init_fraction_recess = init_fraction_recess
         self.dominant = self.heterozyg = self.recess = 0
@@ -43,7 +48,7 @@ class Population(object):
         self.weighted_sum = (
             self.dominant +
             self.heterozyg +
-            self.recess#  * self.weight_recess
+            self.recess * self.weight_recess
         )
         self.dominant_threshold = self.dominant / self.weighted_sum
         self.heterozyg_threshold = (
@@ -53,10 +58,16 @@ class Population(object):
     def get_next_generation(self):
         next_dominant = next_heterozyg = next_recess = 0
         for i in range(self.number):
-            new_spec = self._mate(
-                self._draw_spec_with_preference(), 
-                self._draw_spec_with_preference(),
-            )
+            if i <= self.dominant_addition_per_generation:
+                new_spec = self._mate(
+                    (A, A),
+                    self._draw_spec_with_preference(), 
+                )
+            else:
+                new_spec = self._mate(
+                    self._draw_spec_with_preference(), 
+                    self._draw_spec_with_preference(),
+                )
             if new_spec == ('A', 'A'):
                 next_dominant += 1
             elif new_spec == ('A', 'a'):
@@ -95,11 +106,12 @@ class Population(object):
 
     def _mate(self, first, second):
         """Mates two specimens returning a new one."""
-        return (rnd.choice(first), rnd.choice(second))
+        return tuple(sorted([rnd.choice(first), rnd.choice(second)]))
 
 
 if __name__ == '__main__':
-    p = Population(1000, 0.5, 1, 0)
-    for i in range(20):
-        print(p)
+    p = Population(1000, 0.5, 1.1, 30)
+    for i in range(1000):
+        if not i % 20:
+            print(p)
         p = p.get_next_generation()
